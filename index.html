@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ping Pong</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1a1a2e;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: monospace;
+      color: #eee;
+    }
+    h1 { margin-bottom: 12px; font-size: 1.4rem; letter-spacing: 4px; }
+    #score {
+      font-size: 2rem;
+      margin-bottom: 16px;
+      letter-spacing: 8px;
+    }
+    canvas {
+      border: 2px solid #444;
+      background: #0f0f23;
+    }
+    #info {
+      margin-top: 14px;
+      font-size: 0.75rem;
+      color: #888;
+    }
+    #overlay {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    #overlay h2 { font-size: 1.6rem; letter-spacing: 3px; }
+    #overlay p  { color: #aaa; font-size: 0.85rem; }
+    button {
+      background: #e94560;
+      color: #fff;
+      border: none;
+      padding: 10px 28px;
+      font-family: monospace;
+      font-size: 1rem;
+      cursor: pointer;
+      border-radius: 4px;
+      letter-spacing: 2px;
+    }
+    button:hover { background: #c73652; }
+  </style>
+</head>
+<body>
+  <h1>PING PONG</h1>
+  <div id="score">0 : 0</div>
+  <div style="position:relative">
+    <canvas id="canvas" width="700" height="450"></canvas>
+    <div id="overlay">
+      <h2>PING PONG</h2>
+      <p>First to 7 wins</p>
+      <button id="startBtn">START GAME</button>
+      <p style="margin-top:4px">Player 1: W / S &nbsp;&nbsp; Player 2: ↑ / ↓</p>
+    </div>
+  </div>
+  <div id="info">Player 1: W/S &nbsp;|&nbsp; Player 2: ↑/↓ &nbsp;|&nbsp; ESC: pause</div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx    = canvas.getContext('2d');
+    const overlay = document.getElementById('overlay');
+    const startBtn = document.getElementById('startBtn');
+    const scoreEl  = document.getElementById('score');
+
+    const W = canvas.width, H = canvas.height;
+    const PADDLE_W = 12, PADDLE_H = 80, SPEED = 5, WIN_SCORE = 7;
+
+    let state = 'idle'; // idle | playing | paused | over
+    let p1, p2, ball, keys;
+
+    function reset() {
+      p1   = { x: 20,        y: H/2 - PADDLE_H/2, score: 0, dy: 0 };
+      p2   = { x: W-20-PADDLE_W, y: H/2 - PADDLE_H/2, score: 0, dy: 0 };
+      ball = newBall();
+      keys = {};
+    }
+
+    function newBall(dir = 1) {
+      const angle = (Math.random() * 40 - 20) * Math.PI / 180;
+      return {
+        x: W/2, y: H/2, r: 8,
+        vx: Math.cos(angle) * 6 * dir,
+        vy: Math.sin(angle) * 6,
+      };
+    }
+
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+    function update() {
+      if (state !== 'playing') return;
+
+      // Move paddles
+      if (keys['w'] || keys['W']) p1.y -= SPEED;
+      if (keys['s'] || keys['S']) p1.y += SPEED;
+      if (keys['ArrowUp'])   p2.y -= SPEED;
+      if (keys['ArrowDown']) p2.y += SPEED;
+      p1.y = clamp(p1.y, 0, H - PADDLE_H);
+      p2.y = clamp(p2.y, 0, H - PADDLE_H);
+
+      // Move ball
+      ball.x += ball.vx;
+      ball.y += ball.vy;
+
+      // Top / bottom walls
+      if (ball.y - ball.r < 0)   { ball.y = ball.r;      ball.vy *= -1; }
+      if (ball.y + ball.r > H)   { ball.y = H - ball.r;  ball.vy *= -1; }
+
+      // Paddle collision helper
+      function hitPaddle(p) {
+        return ball.x - ball.r < p.x + PADDLE_W &&
+               ball.x + ball.r > p.x &&
+               ball.y + ball.r > p.y &&
+               ball.y - ball.r < p.y + PADDLE_H;
+      }
+
+      if (hitPaddle(p1) && ball.vx < 0) {
+        ball.x = p1.x + PADDLE_W + ball.r;
+        const rel = (ball.y - (p1.y + PADDLE_H/2)) / (PADDLE_H/2);
+        const angle = rel * 60 * Math.PI / 180;
+        const spd = Math.hypot(ball.vx, ball.vy) * 1.05;
+        ball.vx =  Math.cos(angle) * spd;
+        ball.vy =  Math.sin(angle) * spd;
+      }
+      if (hitPaddle(p2) && ball.vx > 0) {
+        ball.x = p2.x - ball.r;
+        const rel = (ball.y - (p2.y + PADDLE_H/2)) / (PADDLE_H/2);
+        const angle = rel * 60 * Math.PI / 180;
+        const spd = Math.hypot(ball.vx, ball.vy) * 1.05;
+        ball.vx = -Math.cos(angle) * spd;
+        ball.vy =  Math.sin(angle) * spd;
+      }
+
+      // Scoring
+      if (ball.x + ball.r < 0) {
+        p2.score++;
+        checkWin() || (ball = newBall(1));
+      }
+      if (ball.x - ball.r > W) {
+        p1.score++;
+        checkWin() || (ball = newBall(-1));
+      }
+
+      scoreEl.textContent = `${p1.score} : ${p2.score}`;
+    }
+
+    function checkWin() {
+      if (p1.score >= WIN_SCORE || p2.score >= WIN_SCORE) {
+        state = 'over';
+        const winner = p1.score >= WIN_SCORE ? 'Player 1' : 'Player 2';
+        overlay.innerHTML = `
+          <h2>${winner} wins!</h2>
+          <p>${p1.score} : ${p2.score}</p>
+          <button id="startBtn">PLAY AGAIN</button>
+        `;
+        overlay.style.display = 'flex';
+        document.getElementById('startBtn').onclick = startGame;
+        return true;
+      }
+      return false;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+
+      // Centre dashed line
+      ctx.setLineDash([10, 10]);
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H); ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Paddles
+      ctx.fillStyle = '#e94560';
+      ctx.fillRect(p1.x, p1.y, PADDLE_W, PADDLE_H);
+      ctx.fillStyle = '#0f3460';
+      ctx.fillRect(p2.x, p2.y, PADDLE_W, PADDLE_H);
+
+      // Ball
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+      ctx.fillStyle = '#eee';
+      ctx.fill();
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function startGame() {
+      reset();
+      state = 'playing';
+      overlay.style.display = 'none';
+      scoreEl.textContent = '0 : 0';
+    }
+
+    document.addEventListener('keydown', e => {
+      keys[e.key] = true;
+      if (e.key === 'Escape') {
+        if (state === 'playing') {
+          state = 'paused';
+          overlay.innerHTML = `<h2>PAUSED</h2><button id="startBtn">RESUME</button>`;
+          overlay.style.display = 'flex';
+          document.getElementById('startBtn').onclick = () => {
+            state = 'playing';
+            overlay.style.display = 'none';
+          };
+        } else if (state === 'paused') {
+          state = 'playing';
+          overlay.style.display = 'none';
+        }
+      }
+      if (['ArrowUp','ArrowDown',' '].includes(e.key)) e.preventDefault();
+    });
+    document.addEventListener('keyup', e => { keys[e.key] = false; });
+
+    startBtn.onclick = startGame;
+
+    reset();
+    loop();
+  </script>
+</body>
+</html>
