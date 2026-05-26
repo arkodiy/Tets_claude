@@ -1,0 +1,148 @@
+package com.taskmanager.app;
+
+import android.app.DatePickerDialog;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.TextView;
+
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class MainActivity extends AppCompatActivity {
+
+    private RecyclerView recyclerView;
+    private TextView emptyView;
+    private TaskAdapter adapter;
+    private AppDatabase db;
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+
+    private static final SimpleDateFormat DB_FMT =
+            new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        db           = AppDatabase.getInstance(this);
+        recyclerView = findViewById(R.id.recyclerView);
+        emptyView    = findViewById(R.id.emptyView);
+
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        adapter = new TaskAdapter(task -> executor.execute(() -> {
+            task.isDone = !task.isDone;
+            db.taskDao().update(task);
+            reloadOnUiThread(null);
+        }));
+        recyclerView.setAdapter(adapter);
+
+        FloatingActionButton fab = findViewById(R.id.fab);
+        fab.setOnClickListener(v -> showAddDialog());
+
+        reloadOnUiThread(null);
+    }
+
+    // Loads from DB on background thread, updates adapter on UI thread.
+    // afterLoad runs on UI thread after adapter.setData(), inside recyclerView.post().
+    private void reloadOnUiThread(Runnable afterLoad) {
+        executor.execute(() -> {
+            List<Task> tasks = db.taskDao().getAllTasks();
+            LinkedHashMap<String, List<Task>> grouped = group(tasks);
+            runOnUiThread(() -> {
+                adapter.setData(grouped);
+                boolean empty = tasks.isEmpty();
+                emptyView.setVisibility(empty ? View.VISIBLE : View.GONE);
+                recyclerView.setVisibility(empty ? View.GONE : View.VISIBLE);
+                if (afterLoad != null) recyclerView.post(afterLoad);
+            });
+        });
+    }
+
+    private static LinkedHashMap<String, List<Task>> group(List<Task> tasks) {
+        LinkedHashMap<String, List<Task>> map = new LinkedHashMap<>();
+        for (Task t : tasks) {
+            if (!map.containsKey(t.date)) map.put(t.date, new ArrayList<>());
+            map.get(t.date).add(t);
+        }
+        return map;
+    }
+
+    private void showAddDialog() {
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_add_task, null);
+        TextInputLayout  nameLayout = view.findViewById(R.id.nameLayout);
+        TextInputEditText editDate  = view.findViewById(R.id.editDate);
+        TextInputEditText editName  = view.findViewById(R.id.editName);
+
+        final String[] selectedDate = { DB_FMT.format(new Date()) };
+        editDate.setText(selectedDate[0]);
+        editDate.setKeyListener(null); // not directly editable
+
+        View.OnClickListener openPicker = v -> {
+            Calendar cal = Calendar.getInstance();
+            try {
+                Date d = DB_FMT.parse(selectedDate[0]);
+                if (d != null) cal.setTime(d);
+            } catch (Exception ignored) {}
+            new DatePickerDialog(this, (picker, y, m, d) -> {
+                selectedDate[0] = String.format(Locale.US, "%04d-%02d-%02d", y, m + 1, d);
+                editDate.setText(selectedDate[0]);
+            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
+        };
+        editDate.setOnClickListener(openPicker);
+        editDate.setOnFocusChangeListener((v, has) -> { if (has) openPicker.onClick(v); });
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setTitle("New Task")
+                .setView(view)
+                .setPositiveButton("Add", null) // overridden below to validate first
+                .setNegativeButton("Cancel", null)
+                .create();
+
+        dialog.show();
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String name = editName.getText() != null
+                    ? editName.getText().toString().trim() : "";
+            if (name.isEmpty()) {
+                nameLayout.setError("Task name is required");
+                return;
+            }
+            nameLayout.setError(null);
+            dialog.dismiss();
+
+            Task task = new Task();
+            task.date   = selectedDate[0];
+            task.name   = name;
+            task.isDone = false;
+
+            executor.execute(() -> {
+                db.taskDao().insert(task);
+                reloadOnUiThread(() -> recyclerView.scrollToPosition(adapter.getItemCount() - 1));
+            });
+        });
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        executor.shutdown();
+    }
+}

@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace 'com.pingpong.app'
+    namespace 'com.taskmanager.app'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.pingpong.app"
+        applicationId "com.taskmanager.app"
         minSdk 21
         targetSdk 34
         versionCode 1
@@ -25,4 +25,14 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+}
+
+dependencies {
+    def room_version = "2.6.1"
+    implementation "androidx.room:room-runtime:$room_version"
+    annotationProcessor "androidx.room:room-compiler:$room_version"
+
+    implementation "androidx.appcompat:appcompat:1.6.1"
+    implementation "com.google.android.material:material:1.11.0"
+    implementation "androidx.recyclerview:recyclerview:1.3.2"
 }
