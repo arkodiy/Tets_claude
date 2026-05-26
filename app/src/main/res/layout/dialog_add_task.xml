@@ -19,8 +19,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:focusable="true"
-            android:inputType="none"
-            android:drawableEnd="@android:drawable/ic_menu_my_calendar" />
+            android:inputType="none" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
