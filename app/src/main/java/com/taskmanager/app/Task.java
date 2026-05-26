@@ -12,7 +12,7 @@ public class Task {
 
     @NonNull
     @ColumnInfo(name = "date")
-    public String date = "";   // stored as "YYYY-MM-DD"
+    public String date = "";
 
     @NonNull
     @ColumnInfo(name = "name")
