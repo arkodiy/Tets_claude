@@ -31,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private TextView emptyView;
     private TaskAdapter adapter;
-    private AppDatabase db;
+    private DatabaseHelper db;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     private static final SimpleDateFormat DB_FMT =
@@ -42,14 +42,14 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        db           = AppDatabase.getInstance(this);
+        db           = DatabaseHelper.getInstance(this);
         recyclerView = findViewById(R.id.recyclerView);
         emptyView    = findViewById(R.id.emptyView);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         adapter = new TaskAdapter(task -> executor.execute(() -> {
             task.isDone = !task.isDone;
-            db.taskDao().update(task);
+            db.updateTask(task);
             reloadOnUiThread(null);
         }));
         recyclerView.setAdapter(adapter);
@@ -60,11 +60,9 @@ public class MainActivity extends AppCompatActivity {
         reloadOnUiThread(null);
     }
 
-    // Loads from DB on background thread, updates adapter on UI thread.
-    // afterLoad runs on UI thread after adapter.setData(), inside recyclerView.post().
     private void reloadOnUiThread(Runnable afterLoad) {
         executor.execute(() -> {
-            List<Task> tasks = db.taskDao().getAllTasks();
+            List<Task> tasks = db.getAllTasks();
             LinkedHashMap<String, List<Task>> grouped = group(tasks);
             runOnUiThread(() -> {
                 adapter.setData(grouped);
@@ -87,13 +85,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void showAddDialog() {
         View view = LayoutInflater.from(this).inflate(R.layout.dialog_add_task, null);
-        TextInputLayout  nameLayout = view.findViewById(R.id.nameLayout);
-        TextInputEditText editDate  = view.findViewById(R.id.editDate);
-        TextInputEditText editName  = view.findViewById(R.id.editName);
+        TextInputLayout   nameLayout = view.findViewById(R.id.nameLayout);
+        TextInputEditText editDate   = view.findViewById(R.id.editDate);
+        TextInputEditText editName   = view.findViewById(R.id.editName);
 
-        final String[] selectedDate = { DB_FMT.format(new Date()) };
+        final String[] selectedDate = {DB_FMT.format(new Date())};
         editDate.setText(selectedDate[0]);
-        editDate.setKeyListener(null); // not directly editable
+        editDate.setKeyListener(null);
 
         View.OnClickListener openPicker = v -> {
             Calendar cal = Calendar.getInstance();
@@ -104,7 +102,8 @@ public class MainActivity extends AppCompatActivity {
             new DatePickerDialog(this, (picker, y, m, d) -> {
                 selectedDate[0] = String.format(Locale.US, "%04d-%02d-%02d", y, m + 1, d);
                 editDate.setText(selectedDate[0]);
-            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
+            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH))
+                    .show();
         };
         editDate.setOnClickListener(openPicker);
         editDate.setOnFocusChangeListener((v, has) -> { if (has) openPicker.onClick(v); });
@@ -112,10 +111,9 @@ public class MainActivity extends AppCompatActivity {
         AlertDialog dialog = new MaterialAlertDialogBuilder(this)
                 .setTitle("New Task")
                 .setView(view)
-                .setPositiveButton("Add", null) // overridden below to validate first
+                .setPositiveButton("Add", null)
                 .setNegativeButton("Cancel", null)
                 .create();
-
         dialog.show();
 
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
@@ -128,14 +126,15 @@ public class MainActivity extends AppCompatActivity {
             nameLayout.setError(null);
             dialog.dismiss();
 
-            Task task = new Task();
-            task.date   = selectedDate[0];
-            task.name   = name;
+            Task task  = new Task();
+            task.date  = selectedDate[0];
+            task.name  = name;
             task.isDone = false;
 
             executor.execute(() -> {
-                db.taskDao().insert(task);
-                reloadOnUiThread(() -> recyclerView.scrollToPosition(adapter.getItemCount() - 1));
+                db.insertTask(task);
+                reloadOnUiThread(() ->
+                        recyclerView.scrollToPosition(adapter.getItemCount() - 1));
             });
         });
     }
