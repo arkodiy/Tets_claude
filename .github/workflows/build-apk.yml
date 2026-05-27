@@ -32,6 +32,11 @@ jobs:
           printf '\n24333f8a63b6825ea9c5514f83c2829b004d1fee' > "$ANDROID_SDK_ROOT/licenses/android-sdk-license"
           printf '\n84831b9409646a918e30573bab4c9c91346d8abd' > "$ANDROID_SDK_ROOT/licenses/android-sdk-preview-license"
 
+      - name: Install debug keystore
+        run: |
+          mkdir -p ~/.android
+          cp debug.keystore ~/.android/debug.keystore
+
       - name: Build debug APK
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
