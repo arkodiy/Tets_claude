@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">#e94560</item>
-        <item name="colorPrimaryVariant">#c73652</item>
+        <item name="colorPrimary">@color/color_accent</item>
+        <item name="colorPrimaryVariant">@color/color_accent_dark</item>
         <item name="colorOnPrimary">#ffffff</item>
-        <item name="colorSecondary">#e94560</item>
+        <item name="colorSecondary">@color/color_accent</item>
         <item name="colorOnSecondary">#ffffff</item>
-        <item name="colorSurface">#1a1a2e</item>
-        <item name="colorOnSurface">#ddddee</item>
-        <item name="android:colorBackground">#0f0f23</item>
-        <item name="android:windowBackground">#0f0f23</item>
-        <item name="android:textColorPrimary">#ddddee</item>
-        <item name="android:textColorSecondary">#aaaacc</item>
+        <item name="colorSurface">@color/color_surface</item>
+        <item name="colorOnSurface">@color/color_text_primary</item>
+        <item name="android:colorBackground">@color/color_background</item>
+        <item name="android:windowBackground">@color/color_background</item>
+        <item name="android:textColorPrimary">@color/color_text_primary</item>
+        <item name="android:textColorSecondary">@color/color_text_secondary</item>
     </style>
 </resources>

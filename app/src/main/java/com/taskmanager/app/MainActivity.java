@@ -4,6 +4,7 @@ import android.app.DatePickerDialog;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,12 +13,13 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -40,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
     private DatabaseHelper db;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Paint deletePaint = new Paint();
+    private Drawable deleteIcon;
 
     private static final SimpleDateFormat DB_FMT =
             new SimpleDateFormat("yyyy-MM-dd", Locale.US);
@@ -50,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         deletePaint.setColor(Color.parseColor("#c0392b"));
+        deleteIcon = ContextCompat.getDrawable(this, R.drawable.ic_delete_white);
 
         db           = DatabaseHelper.getInstance(this);
         recyclerView = findViewById(R.id.recyclerView);
@@ -116,6 +120,17 @@ public class MainActivity extends AppCompatActivity {
                     View v = vh.itemView;
                     c.drawRect(v.getRight() + dX, v.getTop(),
                                v.getRight(), v.getBottom(), deletePaint);
+                    if (deleteIcon != null) {
+                        float density = getResources().getDisplayMetrics().density;
+                        int iconSize  = (int) (24 * density);
+                        int margin    = (int) (16 * density);
+                        int itemHeight = v.getBottom() - v.getTop();
+                        int iconTop   = v.getTop() + (itemHeight - iconSize) / 2;
+                        int iconRight = v.getRight() - margin;
+                        deleteIcon.setBounds(iconRight - iconSize, iconTop,
+                                             iconRight, iconTop + iconSize);
+                        deleteIcon.draw(c);
+                    }
                 }
                 super.onChildDraw(c, rv, vh, dX, dY, actionState, isCurrentlyActive);
             }
@@ -135,8 +150,7 @@ public class MainActivity extends AppCompatActivity {
         });
         itemTouchHelper.attachToRecyclerView(recyclerView);
 
-        FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(v -> showTaskDialog(null));
+        findViewById(R.id.fab).setOnClickListener(v -> showTaskDialog(null));
 
         reloadOnUiThread(null);
     }
@@ -167,14 +181,22 @@ public class MainActivity extends AppCompatActivity {
     private void showTaskDialog(Task existing) {
         boolean isEdit = existing != null;
         View view = LayoutInflater.from(this).inflate(R.layout.dialog_add_task, null);
-        TextInputLayout   nameLayout = view.findViewById(R.id.nameLayout);
-        TextInputEditText editDate   = view.findViewById(R.id.editDate);
-        TextInputEditText editName   = view.findViewById(R.id.editName);
+        TextInputLayout   nameLayout       = view.findViewById(R.id.nameLayout);
+        TextInputEditText editDate         = view.findViewById(R.id.editDate);
+        TextInputEditText editName         = view.findViewById(R.id.editName);
+        View              quickDateButtons = view.findViewById(R.id.quickDateButtons);
+        MaterialButton    btnYesterday     = view.findViewById(R.id.btnYesterday);
+        MaterialButton    btnTomorrow      = view.findViewById(R.id.btnTomorrow);
+        MaterialButton    btnDelete        = view.findViewById(R.id.btnDeleteTask);
 
         final String[] selectedDate = {isEdit ? existing.date : DB_FMT.format(new Date())};
         editDate.setText(selectedDate[0]);
         editDate.setKeyListener(null);
-        if (isEdit) editName.setText(existing.name);
+        if (isEdit) {
+            editName.setText(existing.name);
+            quickDateButtons.setVisibility(View.VISIBLE);
+            btnDelete.setVisibility(View.VISIBLE);
+        }
 
         View.OnClickListener openPicker = v -> {
             Calendar cal = Calendar.getInstance();
@@ -190,6 +212,9 @@ public class MainActivity extends AppCompatActivity {
         };
         editDate.setOnClickListener(openPicker);
         editDate.setOnFocusChangeListener((v, has) -> { if (has) openPicker.onClick(v); });
+
+        btnYesterday.setOnClickListener(v -> shiftDate(selectedDate, editDate, -1));
+        btnTomorrow.setOnClickListener(v  -> shiftDate(selectedDate, editDate, +1));
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(this)
                 .setTitle(isEdit ? "Edit Task" : "New Task")
@@ -228,6 +253,27 @@ public class MainActivity extends AppCompatActivity {
                 });
             }
         });
+
+        if (isEdit) {
+            btnDelete.setOnClickListener(v -> {
+                dialog.dismiss();
+                executor.execute(() -> {
+                    db.deleteTask(existing.id);
+                    reloadOnUiThread(null);
+                });
+            });
+        }
+    }
+
+    private void shiftDate(String[] selectedDate, TextInputEditText editDate, int days) {
+        try {
+            Calendar cal = Calendar.getInstance();
+            Date d = DB_FMT.parse(selectedDate[0]);
+            if (d != null) cal.setTime(d);
+            cal.add(Calendar.DAY_OF_MONTH, days);
+            selectedDate[0] = DB_FMT.format(cal.getTime());
+            editDate.setText(selectedDate[0]);
+        } catch (Exception ignored) {}
     }
 
     @Override

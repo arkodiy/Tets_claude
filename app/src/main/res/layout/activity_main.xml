@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0f0f23">
+    android:background="@color/color_background">
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
@@ -22,7 +22,7 @@
         android:layout_gravity="center"
         android:gravity="center"
         android:text="No tasks yet.\nTap + to add your first task."
-        android:textColor="#666688"
+        android:textColor="@color/color_text_empty"
         android:textSize="16sp"
         android:lineSpacingExtra="4dp"
         android:visibility="gone" />

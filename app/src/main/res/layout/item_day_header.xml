@@ -9,9 +9,9 @@
     android:paddingTop="24dp"
     android:paddingBottom="8dp"
     android:text="Monday, January 1"
-    android:textColor="#e94560"
+    android:textColor="@color/color_accent"
     android:textSize="13sp"
     android:textStyle="bold"
     android:letterSpacing="0.06"
     android:textAllCaps="true"
-    android:background="#0f0f23" />
+    android:background="@color/color_background" />
