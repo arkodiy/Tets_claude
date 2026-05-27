@@ -5,4 +5,5 @@ public class Task {
     public String date;
     public String name;
     public boolean isDone;
+    public int sortOrder;
 }

@@ -6,7 +6,7 @@
     android:orientation="horizontal"
     android:gravity="center_vertical"
     android:paddingStart="8dp"
-    android:paddingEnd="16dp"
+    android:paddingEnd="4dp"
     android:paddingTop="2dp"
     android:paddingBottom="2dp"
     android:minHeight="48dp"
@@ -27,5 +27,13 @@
         android:textColor="#ddddee"
         android:textSize="15sp"
         android:lineSpacingExtra="2dp" />
+
+    <ImageView
+        android:id="@+id/dragHandle"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:src="@drawable/ic_drag_handle"
+        android:scaleType="center"
+        android:contentDescription="@null" />
 
 </LinearLayout>

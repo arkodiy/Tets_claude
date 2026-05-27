@@ -2,9 +2,11 @@ package com.taskmanager.app;
 
 import android.graphics.Paint;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -27,13 +29,17 @@ public class TaskAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private static final SimpleDateFormat DISPLAY_FMT =
             new SimpleDateFormat("EEEE, MMMM d", Locale.US);
 
-    interface OnTaskToggle { void onToggle(Task task); }
+    interface Callbacks {
+        void onToggle(Task task);
+        void onEdit(Task task);
+        void onStartDrag(RecyclerView.ViewHolder viewHolder);
+    }
 
-    private final OnTaskToggle toggleListener;
-    private final List<Object> items = new ArrayList<>(); // String header | Task item
+    private final Callbacks callbacks;
+    final List<Object> items = new ArrayList<>();
 
-    public TaskAdapter(OnTaskToggle toggleListener) {
-        this.toggleListener = toggleListener;
+    public TaskAdapter(Callbacks callbacks) {
+        this.callbacks = callbacks;
     }
 
     public void setData(Map<String, List<Task>> grouped) {
@@ -45,11 +51,48 @@ public class TaskAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         notifyDataSetChanged();
     }
 
+    public Object getItem(int pos) {
+        return (pos >= 0 && pos < items.size()) ? items.get(pos) : null;
+    }
+
+    public boolean canDropOver(int dragPos, int targetPos) {
+        Object drag   = getItem(dragPos);
+        Object target = getItem(targetPos);
+        if (!(drag instanceof Task) || !(target instanceof Task)) return false;
+        return ((Task) drag).date.equals(((Task) target).date);
+    }
+
+    public void moveItem(int from, int to) {
+        Object item = items.remove(from);
+        items.add(to, item);
+        notifyItemMoved(from, to);
+    }
+
+    public void removeItem(int pos) {
+        if (pos >= 0 && pos < items.size() && items.get(pos) instanceof Task) {
+            items.remove(pos);
+            notifyItemRemoved(pos);
+        }
+    }
+
+    public List<Task> getGroupTasks(int pos) {
+        Object obj = getItem(pos);
+        if (!(obj instanceof Task)) return new ArrayList<>();
+        String date = ((Task) obj).date;
+        List<Task> result = new ArrayList<>();
+        for (Object item : items) {
+            if (item instanceof Task && ((Task) item).date.equals(date)) {
+                result.add((Task) item);
+            }
+        }
+        return result;
+    }
+
     @Override public int getItemCount() { return items.size(); }
 
     @Override
-    public int getItemViewType(int position) {
-        return items.get(position) instanceof String ? TYPE_HEADER : TYPE_TASK;
+    public int getItemViewType(int pos) {
+        return items.get(pos) instanceof String ? TYPE_HEADER : TYPE_TASK;
     }
 
     @NonNull
@@ -88,7 +131,19 @@ public class TaskAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 vh.name.setAlpha(1f);
             }
 
-            vh.checkbox.setOnCheckedChangeListener((btn, checked) -> toggleListener.onToggle(task));
+            vh.checkbox.setOnCheckedChangeListener((btn, checked) -> callbacks.onToggle(task));
+
+            vh.itemView.setOnLongClickListener(v -> {
+                callbacks.onEdit(task);
+                return true;
+            });
+
+            vh.dragHandle.setOnTouchListener((v, event) -> {
+                if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                    callbacks.onStartDrag(vh);
+                }
+                return false;
+            });
         }
     }
 
@@ -98,12 +153,14 @@ public class TaskAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     static class TaskVH extends RecyclerView.ViewHolder {
-        final CheckBox checkbox;
-        final TextView name;
+        final CheckBox  checkbox;
+        final TextView  name;
+        final ImageView dragHandle;
         TaskVH(View v) {
             super(v);
-            checkbox = v.findViewById(R.id.taskCheckbox);
-            name     = v.findViewById(R.id.taskName);
+            checkbox   = v.findViewById(R.id.taskCheckbox);
+            name       = v.findViewById(R.id.taskName);
+            dragHandle = v.findViewById(R.id.dragHandle);
         }
     }
 }
