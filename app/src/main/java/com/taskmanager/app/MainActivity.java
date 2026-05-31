@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.text.InputFilter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -190,6 +191,11 @@ public class MainActivity extends AppCompatActivity {
         View              quickDateButtons = view.findViewById(R.id.quickDateButtons);
         MaterialButton    btnYesterday     = view.findViewById(R.id.btnYesterday);
         MaterialButton    btnTomorrow      = view.findViewById(R.id.btnTomorrow);
+
+        editName.setFilters(new InputFilter[]{ (src, s, e, dst, ds, de) -> {
+            for (int i = s; i < e; i++) if (src.charAt(i) == '\n') return "";
+            return null;
+        }});
 
         final String[] selectedDate = {isEdit ? existing.date : DB_FMT.format(new Date())};
         editDate.setText(selectedDate[0]);
