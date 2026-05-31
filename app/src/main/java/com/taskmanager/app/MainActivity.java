@@ -202,6 +202,7 @@ public class MainActivity extends AppCompatActivity {
         editDate.setKeyListener(null);
         if (isEdit) {
             editName.setText(existing.name);
+            editName.setSelection(existing.name.length());
             quickDateButtons.setVisibility(View.VISIBLE);
         }
 
@@ -234,10 +235,14 @@ public class MainActivity extends AppCompatActivity {
         }
 
         AlertDialog dialog = builder.create();
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().setSoftInputMode(
-                    android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
-        }
+        dialog.setOnShowListener(d -> {
+            editName.requestFocus();
+            android.view.inputmethod.InputMethodManager imm =
+                    (android.view.inputmethod.InputMethodManager)
+                            getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+            if (imm != null) imm.showSoftInput(editName,
+                    android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+        });
         dialog.show();
 
         // Pin the dialog width so it doesn't resize as the task name grows/shrinks.
@@ -247,15 +252,6 @@ public class MainActivity extends AppCompatActivity {
             dialog.getWindow().setLayout(screenWidth - 2 * margin,
                     android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
         }
-
-        editName.post(() -> {
-            editName.requestFocus();
-            android.view.inputmethod.InputMethodManager imm =
-                    (android.view.inputmethod.InputMethodManager)
-                            getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
-            if (imm != null) imm.showSoftInput(editName,
-                    android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
-        });
 
         if (isEdit) {
             Button neutralBtn = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
