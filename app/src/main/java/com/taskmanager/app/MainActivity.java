@@ -234,6 +234,10 @@ public class MainActivity extends AppCompatActivity {
         }
 
         AlertDialog dialog = builder.create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setSoftInputMode(
+                    android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        }
         dialog.show();
 
         // Pin the dialog width so it doesn't resize as the task name grows/shrinks.
@@ -243,6 +247,8 @@ public class MainActivity extends AppCompatActivity {
             dialog.getWindow().setLayout(screenWidth - 2 * margin,
                     android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
         }
+
+        editName.requestFocus();
 
         if (isEdit) {
             Button neutralBtn = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
