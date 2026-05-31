@@ -57,8 +57,7 @@
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Task name"
-        android:layout_marginBottom="16dp">
+        android:hint="Task name">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/editName"
@@ -66,21 +65,9 @@
             android:layout_height="wrap_content"
             android:inputType="textCapSentences"
             android:imeOptions="actionDone"
-            android:maxLines="3" />
+            android:maxLines="1"
+            android:singleLine="true" />
 
     </com.google.android.material.textfield.TextInputLayout>
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnDeleteTask"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Delete Task"
-        android:textColor="@color/color_accent"
-        app:strokeColor="@color/color_accent"
-        app:icon="@drawable/ic_delete_white"
-        app:iconTint="@color/color_accent"
-        app:iconGravity="textStart"
-        android:visibility="gone" />
 
 </LinearLayout>

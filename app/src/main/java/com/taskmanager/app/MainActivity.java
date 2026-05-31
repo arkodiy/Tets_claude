@@ -1,6 +1,7 @@
 package com.taskmanager.app;
 
 import android.app.DatePickerDialog;
+import android.content.res.ColorStateList;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -8,6 +9,7 @@ import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -52,8 +54,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        deletePaint.setColor(Color.parseColor("#c0392b"));
+        deletePaint.setColor(Color.parseColor("#EF4444"));
         deleteIcon = ContextCompat.getDrawable(this, R.drawable.ic_delete_white);
+        if (deleteIcon != null) deleteIcon = deleteIcon.mutate();
 
         db           = DatabaseHelper.getInstance(this);
         recyclerView = findViewById(R.id.recyclerView);
@@ -187,7 +190,6 @@ public class MainActivity extends AppCompatActivity {
         View              quickDateButtons = view.findViewById(R.id.quickDateButtons);
         MaterialButton    btnYesterday     = view.findViewById(R.id.btnYesterday);
         MaterialButton    btnTomorrow      = view.findViewById(R.id.btnTomorrow);
-        MaterialButton    btnDelete        = view.findViewById(R.id.btnDeleteTask);
 
         final String[] selectedDate = {isEdit ? existing.date : DB_FMT.format(new Date())};
         editDate.setText(selectedDate[0]);
@@ -195,7 +197,6 @@ public class MainActivity extends AppCompatActivity {
         if (isEdit) {
             editName.setText(existing.name);
             quickDateButtons.setVisibility(View.VISIBLE);
-            btnDelete.setVisibility(View.VISIBLE);
         }
 
         View.OnClickListener openPicker = v -> {
@@ -216,13 +217,37 @@ public class MainActivity extends AppCompatActivity {
         btnYesterday.setOnClickListener(v -> shiftDate(selectedDate, editDate, -1));
         btnTomorrow.setOnClickListener(v  -> shiftDate(selectedDate, editDate, +1));
 
-        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
                 .setTitle(isEdit ? "Edit Task" : "New Task")
                 .setView(view)
                 .setPositiveButton(isEdit ? "Save" : "Add", null)
-                .setNegativeButton("Cancel", null)
-                .create();
+                .setNegativeButton("Cancel", null);
+
+        if (isEdit) {
+            builder.setNeutralButton(" ", null);
+        }
+
+        AlertDialog dialog = builder.create();
         dialog.show();
+
+        if (isEdit) {
+            Button neutralBtn = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
+            if (neutralBtn instanceof MaterialButton) {
+                MaterialButton mb = (MaterialButton) neutralBtn;
+                mb.setText("");
+                mb.setIconResource(R.drawable.ic_delete_white);
+                mb.setIconTint(ColorStateList.valueOf(
+                        ContextCompat.getColor(this, R.color.color_text_secondary)));
+                mb.setContentDescription("Delete task");
+            }
+            neutralBtn.setOnClickListener(v -> {
+                dialog.dismiss();
+                executor.execute(() -> {
+                    db.deleteTask(existing.id);
+                    reloadOnUiThread(null);
+                });
+            });
+        }
 
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             String name = editName.getText() != null
@@ -253,16 +278,6 @@ public class MainActivity extends AppCompatActivity {
                 });
             }
         });
-
-        if (isEdit) {
-            btnDelete.setOnClickListener(v -> {
-                dialog.dismiss();
-                executor.execute(() -> {
-                    db.deleteTask(existing.id);
-                    reloadOnUiThread(null);
-                });
-            });
-        }
     }
 
     private void shiftDate(String[] selectedDate, TextInputEditText editDate, int days) {
