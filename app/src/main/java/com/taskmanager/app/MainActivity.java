@@ -235,14 +235,14 @@ public class MainActivity extends AppCompatActivity {
         }
 
         AlertDialog dialog = builder.create();
-        dialog.setOnShowListener(d -> {
+        dialog.setOnShowListener(d -> editName.postDelayed(() -> {
             editName.requestFocus();
             android.view.inputmethod.InputMethodManager imm =
                     (android.view.inputmethod.InputMethodManager)
                             getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
             if (imm != null) imm.showSoftInput(editName,
-                    android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
-        });
+                    android.view.inputmethod.InputMethodManager.SHOW_FORCED);
+        }, 100));
         dialog.show();
 
         // Pin the dialog width so it doesn't resize as the task name grows/shrinks.
