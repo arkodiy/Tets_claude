@@ -236,6 +236,14 @@ public class MainActivity extends AppCompatActivity {
         AlertDialog dialog = builder.create();
         dialog.show();
 
+        // Pin the dialog width so it doesn't resize as the task name grows/shrinks.
+        if (dialog.getWindow() != null) {
+            int screenWidth = getResources().getDisplayMetrics().widthPixels;
+            int margin = (int) (32 * getResources().getDisplayMetrics().density);
+            dialog.getWindow().setLayout(screenWidth - 2 * margin,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+
         if (isEdit) {
             Button neutralBtn = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
             if (neutralBtn instanceof MaterialButton) {
