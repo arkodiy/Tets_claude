@@ -248,7 +248,14 @@ public class MainActivity extends AppCompatActivity {
                     android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
         }
 
-        editName.requestFocus();
+        editName.post(() -> {
+            editName.requestFocus();
+            android.view.inputmethod.InputMethodManager imm =
+                    (android.view.inputmethod.InputMethodManager)
+                            getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+            if (imm != null) imm.showSoftInput(editName,
+                    android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+        });
 
         if (isEdit) {
             Button neutralBtn = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
