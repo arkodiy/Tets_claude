@@ -14,7 +14,23 @@ android {
         versionName "1.0"
     }
 
+    signingConfigs {
+        debug {
+            // Explicit keystore committed to the repo so every build (local and CI)
+            // signs with the SAME key. Without this, AGP auto-generates a fresh
+            // ~/.android/debug.keystore per machine/CI run, breaking app updates
+            // ("App not installed" due to signature mismatch).
+            storeFile file("$rootDir/debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
