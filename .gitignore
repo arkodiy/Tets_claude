@@ -1,0 +1,13 @@
+# Gradle
+.gradle/
+build/
+app/build/
+
+# Android local config (machine-specific)
+local.properties
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+# debug.keystore is intentionally committed to keep APK signatures consistent

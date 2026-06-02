@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="color_accent">#0284C7</color>
+    <color name="color_accent_dark">#0369A1</color>
+    <color name="color_background">#F8FAFC</color>
+    <color name="color_surface">#FFFFFF</color>
+    <color name="color_task_item">#FFFFFF</color>
+    <color name="color_text_primary">#0F172A</color>
+    <color name="color_text_secondary">#64748B</color>
+    <color name="color_text_empty">#94A3B8</color>
+    <color name="color_drag_handle">#CBD5E1</color>
+</resources>
