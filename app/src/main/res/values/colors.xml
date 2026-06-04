@@ -9,4 +9,5 @@
     <color name="color_text_secondary">#64748B</color>
     <color name="color_text_empty">#94A3B8</color>
     <color name="color_drag_handle">#CBD5E1</color>
+    <color name="color_today_bg">#E0F2FE</color>
 </resources>
