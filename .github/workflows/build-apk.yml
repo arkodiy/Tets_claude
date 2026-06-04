@@ -2,7 +2,7 @@ name: Build APK
 
 on:
   push:
-    branches: ["claude/simple-pingpong-app-X94cm", "main"]
+    branches: ["claude/**", "main"]
   pull_request:
     branches: ["main"]
   workflow_dispatch:
