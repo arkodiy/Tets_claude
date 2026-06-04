@@ -114,7 +114,14 @@ public class TaskAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 Date d = DB_FMT.parse(raw);
                 if (d != null) display = DISPLAY_FMT.format(d);
             } catch (ParseException ignored) {}
-            ((HeaderVH) holder).date.setText(display);
+
+            boolean isToday = raw.equals(DB_FMT.format(new Date()));
+            if (isToday) display = display + "  ·  TODAY";
+
+            HeaderVH hvh = (HeaderVH) holder;
+            hvh.date.setText(display);
+            hvh.itemView.setBackgroundResource(isToday
+                    ? R.color.color_today_bg : R.color.color_background);
         } else {
             Task task = (Task) items.get(position);
             TaskVH vh = (TaskVH) holder;
