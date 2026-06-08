@@ -156,7 +156,7 @@ public class MainActivity extends AppCompatActivity {
 
         findViewById(R.id.fab).setOnClickListener(v -> showTaskDialog(null));
 
-        reloadOnUiThread(null);
+        reloadOnUiThread(() -> recyclerView.scrollToPosition(adapter.getItemCount() - 1));
     }
 
     private void reloadOnUiThread(Runnable afterLoad) {
