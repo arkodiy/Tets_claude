@@ -189,7 +189,7 @@ public class MainActivity extends AppCompatActivity {
         TextInputEditText editDate         = view.findViewById(R.id.editDate);
         TextInputEditText editName         = view.findViewById(R.id.editName);
         View              quickDateButtons = view.findViewById(R.id.quickDateButtons);
-        MaterialButton    btnYesterday     = view.findViewById(R.id.btnYesterday);
+        MaterialButton    btnToday         = view.findViewById(R.id.btnToday);
         MaterialButton    btnTomorrow      = view.findViewById(R.id.btnTomorrow);
 
         editName.setFilters(new InputFilter[]{ (src, s, e, dst, ds, de) -> {
@@ -221,8 +221,16 @@ public class MainActivity extends AppCompatActivity {
         editDate.setOnClickListener(openPicker);
         editDate.setOnFocusChangeListener((v, has) -> { if (has) openPicker.onClick(v); });
 
-        btnYesterday.setOnClickListener(v -> shiftDate(selectedDate, editDate, -1));
-        btnTomorrow.setOnClickListener(v  -> shiftDate(selectedDate, editDate, +1));
+        btnToday.setOnClickListener(v -> {
+            selectedDate[0] = DB_FMT.format(new Date());
+            editDate.setText(selectedDate[0]);
+        });
+        btnTomorrow.setOnClickListener(v -> {
+            Calendar cal = Calendar.getInstance();
+            cal.add(Calendar.DAY_OF_MONTH, 1);
+            selectedDate[0] = DB_FMT.format(cal.getTime());
+            editDate.setText(selectedDate[0]);
+        });
 
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
                 .setTitle(isEdit ? "Edit Task" : "New Task")
@@ -301,17 +309,6 @@ public class MainActivity extends AppCompatActivity {
                 });
             }
         });
-    }
-
-    private void shiftDate(String[] selectedDate, TextInputEditText editDate, int days) {
-        try {
-            Calendar cal = Calendar.getInstance();
-            Date d = DB_FMT.parse(selectedDate[0]);
-            if (d != null) cal.setTime(d);
-            cal.add(Calendar.DAY_OF_MONTH, days);
-            selectedDate[0] = DB_FMT.format(cal.getTime());
-            editDate.setText(selectedDate[0]);
-        } catch (Exception ignored) {}
     }
 
     @Override
