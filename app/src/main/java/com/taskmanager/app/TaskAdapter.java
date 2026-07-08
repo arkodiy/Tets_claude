@@ -10,6 +10,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.text.ParseException;
@@ -116,12 +117,12 @@ public class TaskAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             } catch (ParseException ignored) {}
 
             boolean isToday = raw.equals(DB_FMT.format(new Date()));
-            if (isToday) display = display + "  ·  TODAY";
 
             HeaderVH hvh = (HeaderVH) holder;
             hvh.date.setText(display);
-            hvh.itemView.setBackgroundResource(isToday
-                    ? R.color.color_today_bg : R.color.color_background);
+            hvh.date.setTextColor(ContextCompat.getColor(hvh.date.getContext(),
+                    isToday ? R.color.color_accent : R.color.color_text_secondary));
+            hvh.todayBadge.setVisibility(isToday ? View.VISIBLE : View.GONE);
         } else {
             Task task = (Task) items.get(position);
             TaskVH vh = (TaskVH) holder;
@@ -156,7 +157,12 @@ public class TaskAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     static class HeaderVH extends RecyclerView.ViewHolder {
         final TextView date;
-        HeaderVH(View v) { super(v); date = v.findViewById(R.id.headerDate); }
+        final TextView todayBadge;
+        HeaderVH(View v) {
+            super(v);
+            date       = v.findViewById(R.id.headerDate);
+            todayBadge = v.findViewById(R.id.todayBadge);
+        }
     }
 
     static class TaskVH extends RecyclerView.ViewHolder {

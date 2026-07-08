@@ -4,8 +4,8 @@ import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
@@ -68,7 +68,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        deletePaint.setColor(Color.parseColor("#EF4444"));
+        deletePaint.setColor(ContextCompat.getColor(this, R.color.color_delete));
+        deletePaint.setAntiAlias(true);
         deleteIcon = ContextCompat.getDrawable(this, R.drawable.ic_delete_white);
         if (deleteIcon != null) deleteIcon = deleteIcon.mutate();
 
@@ -135,8 +136,11 @@ public class MainActivity extends AppCompatActivity {
                                     boolean isCurrentlyActive) {
                 if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE && dX < 0) {
                     View v = vh.itemView;
-                    c.drawRect(v.getRight() + dX, v.getTop(),
-                               v.getRight(), v.getBottom(), deletePaint);
+                    // Rounded backdrop matching the card shape; the card slides
+                    // over it, revealing the red area on the right.
+                    float radius = 16 * getResources().getDisplayMetrics().density;
+                    c.drawRoundRect(new RectF(v.getLeft(), v.getTop(),
+                            v.getRight(), v.getBottom()), radius, radius, deletePaint);
                     if (deleteIcon != null) {
                         float density = getResources().getDisplayMetrics().density;
                         int iconSize  = (int) (24 * density);
