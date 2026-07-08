@@ -96,6 +96,25 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         getWritableDatabase().delete(TABLE, "id=?", new String[]{String.valueOf(id)});
     }
 
+    public void replaceAllTasks(List<Task> tasks) {
+        SQLiteDatabase db = getWritableDatabase();
+        db.beginTransaction();
+        try {
+            db.delete(TABLE, null, null);
+            for (Task t : tasks) {
+                ContentValues v = new ContentValues();
+                v.put("date",       t.date);
+                v.put("name",       t.name);
+                v.put("is_done",    t.isDone ? 1 : 0);
+                v.put("sort_order", t.sortOrder);
+                db.insert(TABLE, null, v);
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+    }
+
     public void updateSortOrders(List<Task> tasks) {
         SQLiteDatabase db = getWritableDatabase();
         db.beginTransaction();

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android Auto Backup rules (API < 31). The tasks database is backed up
+     to the user's Google Drive automatically by the OS. -->
+<full-backup-content>
+    <include domain="database" path="tasks.db" />
+</full-backup-content>

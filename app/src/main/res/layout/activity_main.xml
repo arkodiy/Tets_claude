@@ -27,6 +27,17 @@
         android:lineSpacingExtra="4dp"
         android:visibility="gone" />
 
+    <ImageButton
+        android:id="@+id/menuButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="4dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Menu"
+        android:src="@drawable/ic_more_vert"
+        app:tint="@color/color_text_secondary" />
+
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab"
         android:layout_width="wrap_content"
