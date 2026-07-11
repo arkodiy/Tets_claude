@@ -202,9 +202,17 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     public List<TaskHistory> getAllHistory() {
+        return queryHistory(null, null);
+    }
+
+    public List<TaskHistory> getHistoryForTask(int taskId) {
+        return queryHistory("task_id=?", new String[]{String.valueOf(taskId)});
+    }
+
+    private List<TaskHistory> queryHistory(String selection, String[] args) {
         List<TaskHistory> list = new ArrayList<>();
         try (Cursor c = getReadableDatabase()
-                .query(TABLE_HISTORY, null, null, null, null, null,
+                .query(TABLE_HISTORY, null, selection, args, null, null,
                         "timestamp DESC, id DESC")) {
             while (c.moveToNext()) {
                 TaskHistory h = new TaskHistory();

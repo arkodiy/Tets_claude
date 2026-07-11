@@ -171,13 +171,7 @@ public class MainActivity extends AppCompatActivity {
         });
         itemTouchHelper.attachToRecyclerView(recyclerView);
 
-        View fab = findViewById(R.id.fab);
-        fab.setOnClickListener(v -> showTaskDialog(null));
-        // Hidden, rarely-needed entry point to the change history.
-        fab.setOnLongClickListener(v -> {
-            startActivity(new android.content.Intent(this, HistoryActivity.class));
-            return true;
-        });
+        findViewById(R.id.fab).setOnClickListener(v -> showTaskDialog(null));
 
         backupLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -199,6 +193,7 @@ public class MainActivity extends AppCompatActivity {
             popup.getMenuInflater().inflate(R.menu.main_menu, popup.getMenu());
             popup.setOnMenuItemClickListener(item -> {
                 int id = item.getItemId();
+                if (id == R.id.action_history) { openHistory(-1, null); return true; }
                 if (id == R.id.action_backup)  { startBackup();  return true; }
                 if (id == R.id.action_restore) { startRestore(); return true; }
                 return false;
@@ -207,6 +202,16 @@ public class MainActivity extends AppCompatActivity {
         });
 
         reloadOnUiThread(() -> recyclerView.scrollToPosition(adapter.getItemCount() - 1));
+    }
+
+    /** Opens the change history. Pass taskId >= 0 to scope it to a single task. */
+    private void openHistory(int taskId, String taskName) {
+        Intent intent = new Intent(this, HistoryActivity.class);
+        if (taskId >= 0) {
+            intent.putExtra(HistoryActivity.EXTRA_TASK_ID, taskId);
+            intent.putExtra(HistoryActivity.EXTRA_TASK_NAME, taskName);
+        }
+        startActivity(intent);
     }
 
     private void startBackup() {
@@ -324,6 +329,7 @@ public class MainActivity extends AppCompatActivity {
         View              quickDateButtons = view.findViewById(R.id.quickDateButtons);
         MaterialButton    btnToday         = view.findViewById(R.id.btnToday);
         MaterialButton    btnTomorrow      = view.findViewById(R.id.btnTomorrow);
+        View              btnTaskHistory   = view.findViewById(R.id.btnTaskHistory);
 
         editName.setFilters(new InputFilter[]{ (src, s, e, dst, ds, de) -> {
             for (int i = s; i < e; i++) if (src.charAt(i) == '\n') return "";
@@ -337,6 +343,8 @@ public class MainActivity extends AppCompatActivity {
             editName.setText(existing.name);
             editName.setSelection(existing.name.length());
             quickDateButtons.setVisibility(View.VISIBLE);
+            btnTaskHistory.setVisibility(View.VISIBLE);
+            btnTaskHistory.setOnClickListener(v -> openHistory(existing.id, existing.name));
         }
 
         View.OnClickListener openPicker = v -> {

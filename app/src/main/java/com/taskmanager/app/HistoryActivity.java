@@ -22,11 +22,17 @@ import java.util.concurrent.Executors;
  */
 public class HistoryActivity extends AppCompatActivity {
 
+    /** Optional intent extras to scope the log to a single task. */
+    public static final String EXTRA_TASK_ID   = "task_id";
+    public static final String EXTRA_TASK_NAME = "task_name";
+
     private RecyclerView recyclerView;
     private TextView emptyView;
     private HistoryAdapter adapter;
     private DatabaseHelper db;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+
+    private int taskId = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,19 +43,32 @@ public class HistoryActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.historyRecyclerView);
         emptyView    = findViewById(R.id.historyEmptyView);
 
+        taskId = getIntent().getIntExtra(EXTRA_TASK_ID, -1);
+        String taskName = getIntent().getStringExtra(EXTRA_TASK_NAME);
+        if (taskId >= 0 && taskName != null) {
+            ((TextView) findViewById(R.id.historyTitle)).setText(taskName);
+        }
+
         adapter = new HistoryAdapter();
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
 
         MaterialButton clear = findViewById(R.id.btnClearHistory);
-        clear.setOnClickListener(v -> confirmClear());
+        // Clearing is a global action; hide it when viewing a single task.
+        if (taskId >= 0) {
+            clear.setVisibility(View.GONE);
+        } else {
+            clear.setOnClickListener(v -> confirmClear());
+        }
 
         reload();
     }
 
     private void reload() {
         executor.execute(() -> {
-            List<TaskHistory> history = db.getAllHistory();
+            List<TaskHistory> history = taskId >= 0
+                    ? db.getHistoryForTask(taskId)
+                    : db.getAllHistory();
             runOnUiThread(() -> {
                 adapter.setData(history);
                 boolean empty = history.isEmpty();

@@ -18,12 +18,15 @@
         android:background="@color/color_background">
 
         <TextView
+            android:id="@+id/historyTitle"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
             android:text="@string/history_title"
             android:textColor="@color/color_text_primary"
             android:textSize="20sp"
+            android:ellipsize="end"
+            android:maxLines="1"
             android:textStyle="bold" />
 
         <com.google.android.material.button.MaterialButton

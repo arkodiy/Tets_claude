@@ -7,6 +7,20 @@
     android:orientation="vertical"
     android:padding="20dp">
 
+    <ImageView
+        android:id="@+id/btnTaskHistory"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="end"
+        android:layout_marginBottom="4dp"
+        android:padding="8dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Task history"
+        android:scaleType="fitCenter"
+        android:visibility="gone"
+        app:srcCompat="@drawable/ic_history"
+        app:tint="@color/color_text_secondary" />
+
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/dateLayout"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
