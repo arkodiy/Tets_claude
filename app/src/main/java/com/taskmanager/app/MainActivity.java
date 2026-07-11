@@ -2,7 +2,6 @@ package com.taskmanager.app;
 
 import android.app.DatePickerDialog;
 import android.content.Intent;
-import android.content.res.ColorStateList;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
@@ -12,7 +11,6 @@ import android.os.Bundle;
 import android.text.InputFilter;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -29,6 +27,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -41,9 +40,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -59,6 +61,9 @@ public class MainActivity extends AppCompatActivity {
     private Drawable deleteIcon;
     private ActivityResultLauncher<Intent> backupLauncher;
     private ActivityResultLauncher<Intent> restoreLauncher;
+    // Tasks swiped/deleted but still undoable — hidden from the list until the
+    // undo window closes, then really removed from the database.
+    private final Set<Integer> pendingDeletes = new HashSet<>();
 
     private static final SimpleDateFormat DB_FMT =
             new SimpleDateFormat("yyyy-MM-dd", Locale.US);
@@ -121,8 +126,7 @@ public class MainActivity extends AppCompatActivity {
                 int pos = vh.getAdapterPosition();
                 Object item = adapter.getItem(pos);
                 if (item instanceof Task) {
-                    adapter.removeItem(pos);
-                    executor.execute(() -> db.deleteTask(((Task) item).id));
+                    deleteTaskWithUndo((Task) item);
                 }
             }
 
@@ -193,6 +197,7 @@ public class MainActivity extends AppCompatActivity {
             popup.getMenuInflater().inflate(R.menu.main_menu, popup.getMenu());
             popup.setOnMenuItemClickListener(item -> {
                 int id = item.getItemId();
+                if (id == R.id.action_history) { openHistory(-1, null); return true; }
                 if (id == R.id.action_backup)  { startBackup();  return true; }
                 if (id == R.id.action_restore) { startRestore(); return true; }
                 return false;
@@ -201,6 +206,44 @@ public class MainActivity extends AppCompatActivity {
         });
 
         reloadOnUiThread(() -> recyclerView.scrollToPosition(adapter.getItemCount() - 1));
+    }
+
+    /** Opens the change history. Pass taskId >= 0 to scope it to a single task. */
+    private void openHistory(int taskId, String taskName) {
+        Intent intent = new Intent(this, HistoryActivity.class);
+        if (taskId >= 0) {
+            intent.putExtra(HistoryActivity.EXTRA_TASK_ID, taskId);
+            intent.putExtra(HistoryActivity.EXTRA_TASK_NAME, taskName);
+        }
+        startActivity(intent);
+    }
+
+    /**
+     * Removes a task from view immediately but defers the actual database
+     * delete until the undo window elapses, so an accidental delete can be
+     * taken back from the snackbar.
+     */
+    private void deleteTaskWithUndo(Task task) {
+        pendingDeletes.add(task.id);
+        reloadOnUiThread(null);
+
+        Snackbar sb = Snackbar.make(recyclerView, R.string.task_deleted, Snackbar.LENGTH_LONG);
+        sb.setAction(R.string.undo, v -> {
+            pendingDeletes.remove(task.id);
+            reloadOnUiThread(null);
+        });
+        sb.addCallback(new Snackbar.Callback() {
+            @Override
+            public void onDismissed(Snackbar s, int event) {
+                if (event != DISMISS_EVENT_ACTION && pendingDeletes.contains(task.id)) {
+                    executor.execute(() -> {
+                        db.deleteTask(task.id);
+                        pendingDeletes.remove(task.id);
+                    });
+                }
+            }
+        });
+        sb.show();
     }
 
     private void startBackup() {
@@ -289,6 +332,12 @@ public class MainActivity extends AppCompatActivity {
     private void reloadOnUiThread(Runnable afterLoad) {
         executor.execute(() -> {
             List<Task> tasks = db.getAllTasks();
+            if (!pendingDeletes.isEmpty()) {
+                Iterator<Task> it = tasks.iterator();
+                while (it.hasNext()) {
+                    if (pendingDeletes.contains(it.next().id)) it.remove();
+                }
+            }
             LinkedHashMap<String, List<Task>> grouped = group(tasks);
             runOnUiThread(() -> {
                 adapter.setData(grouped);
@@ -318,6 +367,9 @@ public class MainActivity extends AppCompatActivity {
         View              quickDateButtons = view.findViewById(R.id.quickDateButtons);
         MaterialButton    btnToday         = view.findViewById(R.id.btnToday);
         MaterialButton    btnTomorrow      = view.findViewById(R.id.btnTomorrow);
+        View              editActions      = view.findViewById(R.id.editActions);
+        View              btnTaskHistory   = view.findViewById(R.id.btnTaskHistory);
+        View              btnDeleteTask    = view.findViewById(R.id.btnDeleteTask);
 
         editName.setFilters(new InputFilter[]{ (src, s, e, dst, ds, de) -> {
             for (int i = s; i < e; i++) if (src.charAt(i) == '\n') return "";
@@ -331,6 +383,7 @@ public class MainActivity extends AppCompatActivity {
             editName.setText(existing.name);
             editName.setSelection(existing.name.length());
             quickDateButtons.setVisibility(View.VISIBLE);
+            editActions.setVisibility(View.VISIBLE);
         }
 
         View.OnClickListener openPicker = v -> {
@@ -365,10 +418,6 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton(isEdit ? "Save" : "Add", null)
                 .setNegativeButton("Cancel", null);
 
-        if (isEdit) {
-            builder.setNeutralButton(" ", null);
-        }
-
         AlertDialog dialog = builder.create();
         dialog.setOnShowListener(d -> editName.postDelayed(() -> {
             editName.requestFocus();
@@ -389,21 +438,13 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (isEdit) {
-            Button neutralBtn = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
-            if (neutralBtn instanceof MaterialButton) {
-                MaterialButton mb = (MaterialButton) neutralBtn;
-                mb.setText("");
-                mb.setIconResource(R.drawable.ic_delete_white);
-                mb.setIconTint(ColorStateList.valueOf(
-                        ContextCompat.getColor(this, R.color.color_text_secondary)));
-                mb.setContentDescription("Delete task");
-            }
-            neutralBtn.setOnClickListener(v -> {
+            btnTaskHistory.setOnClickListener(v -> {
                 dialog.dismiss();
-                executor.execute(() -> {
-                    db.deleteTask(existing.id);
-                    reloadOnUiThread(null);
-                });
+                openHistory(existing.id, existing.name);
+            });
+            btnDeleteTask.setOnClickListener(v -> {
+                dialog.dismiss();
+                deleteTaskWithUndo(existing);
             });
         }
 

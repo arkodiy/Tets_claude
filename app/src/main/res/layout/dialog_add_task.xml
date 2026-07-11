@@ -71,4 +71,38 @@
 
     </com.google.android.material.textfield.TextInputLayout>
 
+    <LinearLayout
+        android:id="@+id/editActions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="start"
+        android:layout_marginTop="8dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/btnDeleteTask"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="8dp"
+            android:padding="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Delete task"
+            android:scaleType="fitCenter"
+            app:srcCompat="@drawable/ic_delete_white"
+            app:tint="@color/color_text_secondary" />
+
+        <ImageView
+            android:id="@+id/btnTaskHistory"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Task history"
+            android:scaleType="fitCenter"
+            app:srcCompat="@drawable/ic_history"
+            app:tint="@color/color_text_secondary" />
+
+    </LinearLayout>
+
 </LinearLayout>
