@@ -15,5 +15,22 @@
         <item name="android:statusBarColor">@color/color_background</item>
         <item name="android:navigationBarColor">@color/color_background</item>
         <item name="android:windowLightStatusBar">@bool/light_system_bars</item>
+        <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.App.Small</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.App.Medium</item>
+        <item name="materialAlertDialogTheme">@style/AppDialogTheme</item>
+    </style>
+
+    <style name="ShapeAppearance.App.Small" parent="ShapeAppearance.MaterialComponents.SmallComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item>
+    </style>
+
+    <style name="ShapeAppearance.App.Medium" parent="ShapeAppearance.MaterialComponents.MediumComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">20dp</item>
+    </style>
+
+    <style name="AppDialogTheme" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.App.Medium</item>
     </style>
 </resources>

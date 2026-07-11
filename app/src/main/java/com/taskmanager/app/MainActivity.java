@@ -1,21 +1,27 @@
 package com.taskmanager.app;
 
 import android.app.DatePickerDialog;
+import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.InputFilter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.PopupMenu;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -26,6 +32,11 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -46,6 +57,8 @@ public class MainActivity extends AppCompatActivity {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Paint deletePaint = new Paint();
     private Drawable deleteIcon;
+    private ActivityResultLauncher<Intent> backupLauncher;
+    private ActivityResultLauncher<Intent> restoreLauncher;
 
     private static final SimpleDateFormat DB_FMT =
             new SimpleDateFormat("yyyy-MM-dd", Locale.US);
@@ -55,7 +68,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        deletePaint.setColor(Color.parseColor("#EF4444"));
+        deletePaint.setColor(ContextCompat.getColor(this, R.color.color_delete));
+        deletePaint.setAntiAlias(true);
         deleteIcon = ContextCompat.getDrawable(this, R.drawable.ic_delete_white);
         if (deleteIcon != null) deleteIcon = deleteIcon.mutate();
 
@@ -122,8 +136,11 @@ public class MainActivity extends AppCompatActivity {
                                     boolean isCurrentlyActive) {
                 if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE && dX < 0) {
                     View v = vh.itemView;
-                    c.drawRect(v.getRight() + dX, v.getTop(),
-                               v.getRight(), v.getBottom(), deletePaint);
+                    // Rounded backdrop matching the card shape; the card slides
+                    // over it, revealing the red area on the right.
+                    float radius = 16 * getResources().getDisplayMetrics().density;
+                    c.drawRoundRect(new RectF(v.getLeft(), v.getTop(),
+                            v.getRight(), v.getBottom()), radius, radius, deletePaint);
                     if (deleteIcon != null) {
                         float density = getResources().getDisplayMetrics().density;
                         int iconSize  = (int) (24 * density);
@@ -156,7 +173,117 @@ public class MainActivity extends AppCompatActivity {
 
         findViewById(R.id.fab).setOnClickListener(v -> showTaskDialog(null));
 
+        backupLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(), result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null
+                            && result.getData().getData() != null) {
+                        writeBackup(result.getData().getData());
+                    }
+                });
+        restoreLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(), result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null
+                            && result.getData().getData() != null) {
+                        readBackup(result.getData().getData());
+                    }
+                });
+
+        findViewById(R.id.menuButton).setOnClickListener(v -> {
+            PopupMenu popup = new PopupMenu(this, v);
+            popup.getMenuInflater().inflate(R.menu.main_menu, popup.getMenu());
+            popup.setOnMenuItemClickListener(item -> {
+                int id = item.getItemId();
+                if (id == R.id.action_backup)  { startBackup();  return true; }
+                if (id == R.id.action_restore) { startRestore(); return true; }
+                return false;
+            });
+            popup.show();
+        });
+
         reloadOnUiThread(() -> recyclerView.scrollToPosition(adapter.getItemCount() - 1));
+    }
+
+    private void startBackup() {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT)
+                .addCategory(Intent.CATEGORY_OPENABLE)
+                .setType("application/json")
+                .putExtra(Intent.EXTRA_TITLE,
+                        "tasks-backup-" + DB_FMT.format(new Date()) + ".json");
+        backupLauncher.launch(intent);
+    }
+
+    private void startRestore() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT)
+                .addCategory(Intent.CATEGORY_OPENABLE)
+                .setType("*/*")
+                .putExtra(Intent.EXTRA_MIME_TYPES, new String[]{
+                        "application/json", "application/octet-stream", "text/plain"});
+        restoreLauncher.launch(intent);
+    }
+
+    private void writeBackup(Uri uri) {
+        executor.execute(() -> {
+            try {
+                String json = TaskBackup.toJson(db.getAllTasks());
+                OutputStream out;
+                try {
+                    // "wt" truncates an existing file the user chose to overwrite;
+                    // some providers only support the default "w" mode.
+                    out = getContentResolver().openOutputStream(uri, "wt");
+                } catch (Exception e) {
+                    out = getContentResolver().openOutputStream(uri);
+                }
+                if (out == null) throw new IOException("Cannot open output stream");
+                try (OutputStream os = out) {
+                    os.write(json.getBytes(StandardCharsets.UTF_8));
+                }
+                runOnUiThread(() -> toast("Backup saved"));
+            } catch (Exception e) {
+                runOnUiThread(() -> toast("Backup failed: " + e.getMessage()));
+            }
+        });
+    }
+
+    private void readBackup(Uri uri) {
+        executor.execute(() -> {
+            try {
+                byte[] data;
+                try (InputStream in = getContentResolver().openInputStream(uri)) {
+                    if (in == null) throw new IOException("Cannot open input stream");
+                    ByteArrayOutputStream buf = new ByteArrayOutputStream();
+                    byte[] chunk = new byte[8192];
+                    int n;
+                    while ((n = in.read(chunk)) != -1) buf.write(chunk, 0, n);
+                    data = buf.toByteArray();
+                }
+                List<Task> restored =
+                        TaskBackup.fromJson(new String(data, StandardCharsets.UTF_8));
+                int currentCount = db.getAllTasks().size();
+                runOnUiThread(() -> confirmRestore(restored, currentCount));
+            } catch (Exception e) {
+                runOnUiThread(() -> toast("Restore failed: not a valid backup file"));
+            }
+        });
+    }
+
+    private void confirmRestore(List<Task> restored, int currentCount) {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Restore from backup")
+                .setMessage("This will replace your current " + currentCount
+                        + " task(s) with " + restored.size() + " task(s) from the backup.")
+                .setPositiveButton("Restore", (d, w) -> executor.execute(() -> {
+                    db.replaceAllTasks(restored);
+                    reloadOnUiThread(() -> {
+                        recyclerView.scrollToPosition(adapter.getItemCount() - 1);
+                        toast("Restored " + restored.size() + " task(s)");
+                    });
+                }))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void toast(String msg) {
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
     }
 
     private void reloadOnUiThread(Runnable afterLoad) {
