@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp"
+    android:background="@color/color_task_item">
+
+    <TextView
+        android:id="@+id/historyText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/color_text_primary"
+        android:textSize="15sp"
+        android:lineSpacingExtra="2dp" />
+
+    <TextView
+        android:id="@+id/historyTime"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="2dp"
+        android:textColor="@color/color_text_secondary"
+        android:textSize="12sp" />
+
+</LinearLayout>

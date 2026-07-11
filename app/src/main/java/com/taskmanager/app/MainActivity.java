@@ -154,7 +154,13 @@ public class MainActivity extends AppCompatActivity {
         });
         itemTouchHelper.attachToRecyclerView(recyclerView);
 
-        findViewById(R.id.fab).setOnClickListener(v -> showTaskDialog(null));
+        View fab = findViewById(R.id.fab);
+        fab.setOnClickListener(v -> showTaskDialog(null));
+        // Hidden, rarely-needed entry point to the change history.
+        fab.setOnLongClickListener(v -> {
+            startActivity(new android.content.Intent(this, HistoryActivity.class));
+            return true;
+        });
 
         reloadOnUiThread(() -> recyclerView.scrollToPosition(adapter.getItemCount() - 1));
     }
