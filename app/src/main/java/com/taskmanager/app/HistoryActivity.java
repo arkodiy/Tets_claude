@@ -8,7 +8,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.material.button.MaterialButton;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.List;
@@ -16,9 +16,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Read-only audit log of everything that has happened to tasks. Reached
- * rarely, via a long-press on the "add" button on the main screen, so it
- * stays out of the way during normal use.
+ * Read-only audit log of everything that has happened to tasks. Opened from
+ * the overflow menu (whole log) or from a task's edit dialog (that task only).
  */
 public class HistoryActivity extends AppCompatActivity {
 
@@ -45,21 +44,28 @@ public class HistoryActivity extends AppCompatActivity {
 
         taskId = getIntent().getIntExtra(EXTRA_TASK_ID, -1);
         String taskName = getIntent().getStringExtra(EXTRA_TASK_NAME);
-        if (taskId >= 0 && taskName != null) {
-            ((TextView) findViewById(R.id.historyTitle)).setText(taskName);
+
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        toolbar.setNavigationOnClickListener(v -> finish());
+        // The title always reads "History"; a single-task view names the task
+        // in the subtitle. Clearing is global, so only the whole-log view
+        // gets the Clear action.
+        if (taskId >= 0) {
+            if (taskName != null) toolbar.setSubtitle(taskName);
+        } else {
+            toolbar.inflateMenu(R.menu.history_menu);
+            toolbar.setOnMenuItemClickListener(item -> {
+                if (item.getItemId() == R.id.action_clear) {
+                    confirmClear();
+                    return true;
+                }
+                return false;
+            });
         }
 
         adapter = new HistoryAdapter();
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
-
-        MaterialButton clear = findViewById(R.id.btnClearHistory);
-        // Clearing is a global action; hide it when viewing a single task.
-        if (taskId >= 0) {
-            clear.setVisibility(View.GONE);
-        } else {
-            clear.setOnClickListener(v -> confirmClear());
-        }
 
         reload();
     }
