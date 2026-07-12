@@ -8,4 +8,17 @@
     <string name="history_clear">Clear</string>
     <string name="history_clear_confirm">Delete the entire change history? This cannot be undone.</string>
     <string name="history_empty">No history yet.</string>
+
+    <!-- Add / edit task screen -->
+    <string name="new_task_title">New task</string>
+    <string name="edit_task_title">Edit task</string>
+    <string name="action_save">Save</string>
+    <string name="action_add">Add</string>
+    <string name="task_name_hint">Task name</string>
+    <string name="date_hint">Date</string>
+    <string name="today">Today</string>
+    <string name="tomorrow">Tomorrow</string>
+    <string name="task_history_action">Task history</string>
+    <string name="delete_task">Delete task</string>
+    <string name="name_required">Task name is required</string>
 </resources>

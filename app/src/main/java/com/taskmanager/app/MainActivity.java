@@ -1,6 +1,5 @@
 package com.taskmanager.app;
 
-import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -8,8 +7,6 @@ import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
-import android.text.InputFilter;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -17,7 +14,6 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.core.content.ContextCompat;
@@ -25,11 +21,8 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
-import com.google.android.material.textfield.TextInputEditText;
-import com.google.android.material.textfield.TextInputLayout;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -38,7 +31,6 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -61,6 +53,10 @@ public class MainActivity extends AppCompatActivity {
     private Drawable deleteIcon;
     private ActivityResultLauncher<Intent> backupLauncher;
     private ActivityResultLauncher<Intent> restoreLauncher;
+    private ActivityResultLauncher<Intent> editLauncher;
+    // The task currently open in the editor, so an edit/delete result can be
+    // applied to the real object (preserving isDone/sortOrder). Null when adding.
+    private Task editingTask;
     // Tasks swiped/deleted but still undoable — hidden from the list until the
     // undo window closes, then really removed from the database.
     private final Set<Integer> pendingDeletes = new HashSet<>();
@@ -92,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
                     reloadOnUiThread(null);
                 });
             }
-            @Override public void onEdit(Task task) { showTaskDialog(task); }
+            @Override public void onEdit(Task task) { openTaskEditor(task); }
             @Override public void onStartDrag(RecyclerView.ViewHolder vh) {
                 itemTouchHelper.startDrag(vh);
             }
@@ -175,7 +171,14 @@ public class MainActivity extends AppCompatActivity {
         });
         itemTouchHelper.attachToRecyclerView(recyclerView);
 
-        findViewById(R.id.fab).setOnClickListener(v -> showTaskDialog(null));
+        findViewById(R.id.fab).setOnClickListener(v -> openTaskEditor(null));
+
+        editLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(), result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        onTaskEditorResult(result.getData());
+                    }
+                });
 
         backupLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -358,125 +361,51 @@ public class MainActivity extends AppCompatActivity {
         return map;
     }
 
-    private void showTaskDialog(Task existing) {
-        boolean isEdit = existing != null;
-        View view = LayoutInflater.from(this).inflate(R.layout.dialog_add_task, null);
-        TextInputLayout   nameLayout       = view.findViewById(R.id.nameLayout);
-        TextInputEditText editDate         = view.findViewById(R.id.editDate);
-        TextInputEditText editName         = view.findViewById(R.id.editName);
-        View              quickDateButtons = view.findViewById(R.id.quickDateButtons);
-        MaterialButton    btnToday         = view.findViewById(R.id.btnToday);
-        MaterialButton    btnTomorrow      = view.findViewById(R.id.btnTomorrow);
-        View              editActions      = view.findViewById(R.id.editActions);
-        View              btnTaskHistory   = view.findViewById(R.id.btnTaskHistory);
-        View              btnDeleteTask    = view.findViewById(R.id.btnDeleteTask);
-
-        editName.setFilters(new InputFilter[]{ (src, s, e, dst, ds, de) -> {
-            for (int i = s; i < e; i++) if (src.charAt(i) == '\n') return "";
-            return null;
-        }});
-
-        final String[] selectedDate = {isEdit ? existing.date : DB_FMT.format(new Date())};
-        editDate.setText(selectedDate[0]);
-        editDate.setKeyListener(null);
-        if (isEdit) {
-            editName.setText(existing.name);
-            editName.setSelection(existing.name.length());
-            quickDateButtons.setVisibility(View.VISIBLE);
-            editActions.setVisibility(View.VISIBLE);
+    /** Opens the full-screen add (existing == null) or edit form. */
+    private void openTaskEditor(Task existing) {
+        editingTask = existing;
+        Intent intent = new Intent(this, TaskEditActivity.class);
+        if (existing != null) {
+            intent.putExtra(TaskEditActivity.EXTRA_TASK_ID, existing.id);
+            intent.putExtra(TaskEditActivity.EXTRA_TASK_NAME, existing.name);
+            intent.putExtra(TaskEditActivity.EXTRA_TASK_DATE, existing.date);
         }
+        editLauncher.launch(intent);
+    }
 
-        View.OnClickListener openPicker = v -> {
-            Calendar cal = Calendar.getInstance();
-            try {
-                Date d = DB_FMT.parse(selectedDate[0]);
-                if (d != null) cal.setTime(d);
-            } catch (Exception ignored) {}
-            new DatePickerDialog(this, (picker, y, m, d) -> {
-                selectedDate[0] = String.format(Locale.US, "%04d-%02d-%02d", y, m + 1, d);
-                editDate.setText(selectedDate[0]);
-            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH))
-                    .show();
-        };
-        editDate.setOnClickListener(openPicker);
-        editDate.setOnFocusChangeListener((v, has) -> { if (has) openPicker.onClick(v); });
-
-        btnToday.setOnClickListener(v -> {
-            selectedDate[0] = DB_FMT.format(new Date());
-            editDate.setText(selectedDate[0]);
-        });
-        btnTomorrow.setOnClickListener(v -> {
-            Calendar cal = Calendar.getInstance();
-            cal.add(Calendar.DAY_OF_MONTH, 1);
-            selectedDate[0] = DB_FMT.format(cal.getTime());
-            editDate.setText(selectedDate[0]);
-        });
-
-        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
-                .setTitle(isEdit ? "Edit Task" : "New Task")
-                .setView(view)
-                .setPositiveButton(isEdit ? "Save" : "Add", null)
-                .setNegativeButton("Cancel", null);
-
-        AlertDialog dialog = builder.create();
-        dialog.setOnShowListener(d -> editName.postDelayed(() -> {
-            editName.requestFocus();
-            android.view.inputmethod.InputMethodManager imm =
-                    (android.view.inputmethod.InputMethodManager)
-                            getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
-            if (imm != null) imm.showSoftInput(editName,
-                    android.view.inputmethod.InputMethodManager.SHOW_FORCED);
-        }, 100));
-        dialog.show();
-
-        // Pin the dialog width so it doesn't resize as the task name grows/shrinks.
-        if (dialog.getWindow() != null) {
-            int screenWidth = getResources().getDisplayMetrics().widthPixels;
-            int margin = (int) (32 * getResources().getDisplayMetrics().density);
-            dialog.getWindow().setLayout(screenWidth - 2 * margin,
-                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+    /** Applies whatever the editor reported back: a save, or a delete. */
+    private void onTaskEditorResult(Intent data) {
+        String action = data.getStringExtra(TaskEditActivity.EXTRA_RESULT_ACTION);
+        if (TaskEditActivity.ACTION_DELETE.equals(action)) {
+            if (editingTask != null) deleteTaskWithUndo(editingTask);
+            return;
         }
+        if (!TaskEditActivity.ACTION_SAVE.equals(action)) return;
 
-        if (isEdit) {
-            btnTaskHistory.setOnClickListener(v -> {
-                dialog.dismiss();
-                openHistory(existing.id, existing.name);
+        String name = data.getStringExtra(TaskEditActivity.EXTRA_TASK_NAME);
+        String date = data.getStringExtra(TaskEditActivity.EXTRA_TASK_DATE);
+        if (name == null || date == null) return;
+
+        if (editingTask != null) {
+            // Reuse the loaded task so isDone/sortOrder survive the edit.
+            editingTask.name = name;
+            editingTask.date = date;
+            Task edited = editingTask;
+            executor.execute(() -> {
+                db.updateTask(edited);
+                reloadOnUiThread(null);
             });
-            btnDeleteTask.setOnClickListener(v -> {
-                dialog.dismiss();
-                deleteTaskWithUndo(existing);
+        } else {
+            Task task   = new Task();
+            task.date   = date;
+            task.name   = name;
+            task.isDone = false;
+            executor.execute(() -> {
+                db.insertTask(task);
+                reloadOnUiThread(() ->
+                        recyclerView.scrollToPosition(adapter.getItemCount() - 1));
             });
         }
-
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            String name = editName.getText() != null
-                    ? editName.getText().toString().trim() : "";
-            if (name.isEmpty()) {
-                nameLayout.setError("Task name is required");
-                return;
-            }
-            nameLayout.setError(null);
-            dialog.dismiss();
-
-            if (isEdit) {
-                existing.name = name;
-                existing.date = selectedDate[0];
-                executor.execute(() -> {
-                    db.updateTask(existing);
-                    reloadOnUiThread(null);
-                });
-            } else {
-                Task task   = new Task();
-                task.date   = selectedDate[0];
-                task.name   = name;
-                task.isDone = false;
-                executor.execute(() -> {
-                    db.insertTask(task);
-                    reloadOnUiThread(() ->
-                            recyclerView.scrollToPosition(adapter.getItemCount() - 1));
-                });
-            }
-        });
     }
 
     @Override

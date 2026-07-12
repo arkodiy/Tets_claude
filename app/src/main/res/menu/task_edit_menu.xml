@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <!-- Confirmation action sits in the top-right, per Material full-screen
+         dialog guidance. Its title flips to "Add" for a new task. -->
+    <item
+        android:id="@+id/action_save"
+        android:title="@string/action_save"
+        app:showAsAction="ifRoom" />
+    <!-- Secondary / destructive actions live in the overflow, edit mode only. -->
+    <item
+        android:id="@+id/action_task_history"
+        android:title="@string/task_history_action"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_delete"
+        android:title="@string/delete_task"
+        app:showAsAction="never" />
+</menu>
