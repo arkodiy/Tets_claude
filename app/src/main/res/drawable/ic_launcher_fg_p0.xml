@@ -11,12 +11,11 @@
         android:strokeColor="#FFFFFF"
         android:strokeWidth="6"
         android:strokeAlpha="0.28" />
-    <!-- check mark (dimmed: nothing done yet) -->
+    <!-- check mark (always solid white; only the ring reflects progress) -->
     <path
         android:pathData="M40,55 L50,65 L69,44"
         android:strokeColor="#FFFFFF"
         android:strokeWidth="7.5"
-        android:strokeAlpha="0.4"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
 </vector>

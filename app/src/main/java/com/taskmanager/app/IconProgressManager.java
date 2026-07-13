@@ -39,7 +39,12 @@ final class IconProgressManager {
 
     /**
      * Maps today's done/total ratio to a bucket index into {@link #ALIASES}.
-     * Returns bucket 0 (empty ring) when nothing is scheduled for today.
+     *
+     * <p>The extremes are exact, not rounded: the empty ring (bucket 0) shows
+     * only when nothing is done, and the full ring (last bucket) only when
+     * <em>every</em> task is done. So 99 of 100 done shows the highest partial
+     * ring, never a full one. Everything in between is rounded to the nearest
+     * intermediate bucket.
      */
     static int bucketFor(List<Task> tasks) {
         String today = DB_FMT.format(new Date());
@@ -50,10 +55,13 @@ final class IconProgressManager {
                 if (t.isDone) done++;
             }
         }
-        if (total == 0) return 0;
-        int idx = Math.round((float) done / total * (ALIASES.length - 1));
-        if (idx < 0) idx = 0;
-        if (idx > ALIASES.length - 1) idx = ALIASES.length - 1;
+        int last = ALIASES.length - 1;
+        if (total == 0 || done == 0) return 0;      // empty ring
+        if (done >= total) return last;             // full ring: all done
+        // Partial progress -> an intermediate bucket, never empty or full.
+        int idx = Math.round((float) done / total * last);
+        if (idx < 1) idx = 1;
+        if (idx > last - 1) idx = last - 1;
         return idx;
     }
 
