@@ -1,6 +1,9 @@
 package com.taskmanager.app;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
@@ -60,6 +63,20 @@ public class MainActivity extends AppCompatActivity {
     // Tasks swiped/deleted but still undoable — hidden from the list until the
     // undo window closes, then really removed from the database.
     private final Set<Integer> pendingDeletes = new HashSet<>();
+
+    // The onCreate() load already refreshes the list once; skip the redundant
+    // reload the immediately-following onResume() would otherwise trigger.
+    private boolean skipNextResumeReload = true;
+
+    // Fires when the calendar day rolls over (or the clock/time zone changes)
+    // while the app is in the foreground, so the "Today" label follows the new
+    // day instead of sticking to yesterday's header until the next reload.
+    private final BroadcastReceiver dateChangeReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            reloadOnUiThread(null);
+        }
+    };
 
     private static final SimpleDateFormat DB_FMT =
             new SimpleDateFormat("yyyy-MM-dd", Locale.US);
@@ -209,6 +226,31 @@ public class MainActivity extends AppCompatActivity {
         });
 
         reloadOnUiThread(() -> recyclerView.scrollToPosition(adapter.getItemCount() - 1));
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Listen for the day rolling over while we're in the foreground.
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_DATE_CHANGED);
+        filter.addAction(Intent.ACTION_TIME_CHANGED);
+        filter.addAction(Intent.ACTION_TIMEZONE_CHANGED);
+        registerReceiver(dateChangeReceiver, filter);
+
+        // Returning to the app after midnight (e.g. backgrounded overnight)
+        // must rebind headers so a stale "Today" badge moves to the real today.
+        if (skipNextResumeReload) {
+            skipNextResumeReload = false;
+        } else {
+            reloadOnUiThread(null);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(dateChangeReceiver);
     }
 
     /** Opens the change history. Pass taskId >= 0 to scope it to a single task. */
