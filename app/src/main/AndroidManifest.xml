@@ -19,9 +19,10 @@
         <!--
             Launcher icon reflects the day's task completion. Android cannot
             redraw a launcher icon at runtime, so we ship one static icon per
-            25% bucket as an activity-alias and enable exactly one at a time
-            (see IconProgressManager). Launcher0 is the install-time default;
-            all aliases target MainActivity.
+            12.5% step (45-degree arc) as an activity-alias and enable exactly
+            one at a time (see IconProgressManager). Launcher0 is the
+            install-time default; all aliases target MainActivity. Alias names
+            are the rounded percent of the step (13 = 12.5%, 38 = 37.5%, ...).
         -->
         <activity-alias
             android:name=".Launcher0"
@@ -29,6 +30,18 @@
             android:enabled="true"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_p0"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Launcher13"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_p13"
             android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -48,6 +61,18 @@
             </intent-filter>
         </activity-alias>
         <activity-alias
+            android:name=".Launcher38"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_p38"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
             android:name=".Launcher50"
             android:targetActivity=".MainActivity"
             android:enabled="false"
@@ -60,11 +85,35 @@
             </intent-filter>
         </activity-alias>
         <activity-alias
+            android:name=".Launcher63"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_p63"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
             android:name=".Launcher75"
             android:targetActivity=".MainActivity"
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_p75"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".Launcher88"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_p88"
             android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

@@ -12,7 +12,16 @@ import java.util.Locale;
 
 /**
  * Reflects the current day's task completion on the launcher icon by switching
- * between pre-baked activity-alias icons (0 / 25 / 50 / 75 / 100 %).
+ * between pre-baked activity-alias icons in 12.5% steps (45-degree arcs):
+ * 0, 12.5, 25, ... 100%.
+ *
+ * <p>Why eighths: people read ring fill approximately, anchoring on halves,
+ * quarters and eighths (angle is a mid-accuracy visual channel per
+ * Cleveland–McGill), and absolute judgment tops out at 5–9 reliable levels
+ * (Miller's 7±2) — so 8 fill levels is the most granularity a launcher-sized
+ * icon can actually convey. The 45-degree step also keeps adjacent states
+ * distinguishable at ~48dp, and the smallest arc (45° + round caps ≈ 56°
+ * visually) reads as a light "spark" rather than a heavy quarter ring.
  *
  * <p>Android has no API to redraw a launcher icon at runtime, so we ship one
  * static icon per bucket (declared as an {@code <activity-alias>} in the
@@ -24,13 +33,19 @@ import java.util.Locale;
  */
 final class IconProgressManager {
 
-    /** Alias short-names declared in AndroidManifest.xml, ordered by fill. */
+    /**
+     * Alias short-names declared in AndroidManifest.xml, ordered by fill.
+     * Names are the rounded percent of each 12.5% step (13 = 12.5%, ...).
+     */
     private static final String[] ALIASES = {
-            "Launcher0", "Launcher25", "Launcher50", "Launcher75", "Launcher100"
+            "Launcher0", "Launcher13", "Launcher25", "Launcher38", "Launcher50",
+            "Launcher63", "Launcher75", "Launcher88", "Launcher100"
     };
 
     private static final String PREFS      = "icon_progress";
-    private static final String KEY_BUCKET = "bucket";
+    // v2: the bucket grid changed from 5 to 9 states. A fresh key makes sure a
+    // stale index stored by the old grid can't suppress the first re-apply.
+    private static final String KEY_BUCKET = "bucket_v2";
 
     private static final SimpleDateFormat DB_FMT =
             new SimpleDateFormat("yyyy-MM-dd", Locale.US);
