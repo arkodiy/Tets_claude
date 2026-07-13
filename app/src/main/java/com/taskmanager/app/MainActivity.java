@@ -253,6 +253,18 @@ public class MainActivity extends AppCompatActivity {
         unregisterReceiver(dateChangeReceiver);
     }
 
+    @Override
+    protected void onStop() {
+        super.onStop();
+        // Update the launcher icon's progress ring as the user leaves the app.
+        // Done here — not on every checkbox toggle — so the alias swap (and its
+        // launcher flicker) never happens while the app is on screen; the icon
+        // is only ever seen from the home screen anyway.
+        Context appContext = getApplicationContext();
+        executor.execute(() ->
+                IconProgressManager.refresh(appContext, db.getAllTasks()));
+    }
+
     /** Opens the change history. Pass taskId >= 0 to scope it to a single task. */
     private void openHistory(int taskId, String taskName) {
         Intent intent = new Intent(this, HistoryActivity.class);
