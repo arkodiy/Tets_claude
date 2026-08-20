@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher foreground: 87.5% of today's tasks done (315-degree arc). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- track ring -->
+    <path
+        android:pathData="M54,24 a30,30 0 1 0 0,60 a30,30 0 1 0 0,-60 Z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="6"
+        android:strokeAlpha="0.28" />
+    <!-- progress arc: 0% -> 87.5% -->
+    <path
+        android:pathData="M54,24 A30,30 0 1 1 32.79,32.79"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="6"
+        android:strokeLineCap="round" />
+    <!-- check mark -->
+    <path
+        android:pathData="M40,55 L50,65 L69,44"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="7.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher foreground: 0% of today's tasks done (empty ring). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- track ring -->
+    <path
+        android:pathData="M54,24 a30,30 0 1 0 0,60 a30,30 0 1 0 0,-60 Z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="6"
+        android:strokeAlpha="0.28" />
+    <!-- check mark (always solid white; only the ring reflects progress) -->
+    <path
+        android:pathData="M40,55 L50,65 L69,44"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="7.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>
