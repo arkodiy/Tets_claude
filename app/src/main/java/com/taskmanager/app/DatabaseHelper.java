@@ -122,11 +122,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = getWritableDatabase();
         Task old = getTask(db, task.id);
 
+        // sort_order is owned by updateSortOrders(): toggling, renaming or
+        // re-dating a task must never move it within its day.
         ContentValues v = new ContentValues();
         v.put("is_done",    task.isDone ? 1 : 0);
         v.put("name",       task.name);
         v.put("date",       task.date);
-        v.put("sort_order", task.sortOrder);
         db.update(TABLE, v, "id=?", new String[]{String.valueOf(task.id)});
 
         if (old != null) {
@@ -174,14 +175,22 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
     }
 
+    /**
+     * Persists the given list order as each task's sort_order. Also writes the
+     * new value back into the Task objects: the adapter keeps holding these
+     * same instances after a drag, so leaving them stale would let a later
+     * save of the task (toggle, rename) reintroduce the old position.
+     */
     public void updateSortOrders(List<Task> tasks) {
         SQLiteDatabase db = getWritableDatabase();
         db.beginTransaction();
         try {
             for (int i = 0; i < tasks.size(); i++) {
+                Task t = tasks.get(i);
+                t.sortOrder = i;
                 ContentValues v = new ContentValues();
                 v.put("sort_order", i);
-                db.update(TABLE, v, "id=?", new String[]{String.valueOf(tasks.get(i).id)});
+                db.update(TABLE, v, "id=?", new String[]{String.valueOf(t.id)});
             }
             db.setTransactionSuccessful();
         } finally {
